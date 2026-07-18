@@ -1,0 +1,26 @@
+[
+  {
+    "_id": "dept1",
+    "name": "Roads & Infrastructure",
+    "code": "ROADS",
+    "contactEmail": "roads@nagarsetu.gov.in",
+    "contactPhone": "+91-1234567890",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "dept2",
+    "name": "Water Supply",
+    "code": "WATER",
+    "contactEmail": "water@nagarsetu.gov.in",
+    "contactPhone": "+91-1234567891",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "dept3",
+    "name": "Electricity",
+    "code": "POWER",
+    "contactEmail": "power@nagarsetu.gov.in",
+    "contactPhone": "+91-1234567892",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+]

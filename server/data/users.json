@@ -1,0 +1,75 @@
+[
+  {
+    "name": "Rohan Nagra",
+    "email": "rohannagra001@gmail.com",
+    "password": "$2a$10$5LQ134Kvx5Es8.yuSV0F.uZcNFs5Ixm6RtmfoPczZu/0yqeA14/Lu",
+    "phone": "9541655364",
+    "address": {},
+    "role": "citizen",
+    "isEmailVerified": false,
+    "isActive": true,
+    "_id": "1783071241915h0lh0h8ck",
+    "createdAt": "2026-07-03T09:34:01.915Z",
+    "updatedAt": "2026-07-13T07:00:50.030Z",
+    "lastLogin": "2026-07-13T07:00:50.029Z"
+  },
+  {
+    "name": "Test Citizen",
+    "email": "citizen@test.com",
+    "password": "$2a$10$qjo81rTpD3VhLHY4bc2toO5fXD4A/j6l2edWkE3hR9mUJJPXmfab.",
+    "phone": "1234567890",
+    "role": "citizen",
+    "address": {
+      "street": "123 Test Street",
+      "city": "Test City",
+      "state": "Test State",
+      "pincode": "123456",
+      "district": "Test District"
+    },
+    "isEmailVerified": true,
+    "isActive": true,
+    "_id": "1783926357975tj7n2y4n8",
+    "createdAt": "2026-07-13T07:05:57.975Z",
+    "updatedAt": "2026-07-13T07:05:57.976Z"
+  },
+  {
+    "name": "Test Officer",
+    "email": "officer@test.com",
+    "password": "$2a$10$bb/y0DpafxEiCgRl7Xzr7u9bpH8mplbt/RveVAysV4L34R0QkgsCi",
+    "phone": "0987654321",
+    "role": "officer",
+    "address": {
+      "street": "456 Officer Road",
+      "city": "Test City",
+      "state": "Test State",
+      "pincode": "123456",
+      "district": "Test District"
+    },
+    "isEmailVerified": true,
+    "isActive": true,
+    "_id": "1783926358073gnolg025i",
+    "createdAt": "2026-07-13T07:05:58.073Z",
+    "updatedAt": "2026-07-13T07:13:38.739Z",
+    "lastLogin": "2026-07-13T07:13:38.738Z"
+  },
+  {
+    "name": "Test Admin",
+    "email": "admin@test.com",
+    "password": "$2a$10$g44GmAvqJuaQWRgsBuvjzO0euXlJiGYwmAN3HSMRqBg58myjAC9Pe",
+    "phone": "5555555555",
+    "role": "super_admin",
+    "address": {
+      "street": "789 Admin Avenue",
+      "city": "Test City",
+      "state": "Test State",
+      "pincode": "123456",
+      "district": "Test District"
+    },
+    "isEmailVerified": true,
+    "isActive": true,
+    "_id": "1783926359563cz008eh4w",
+    "createdAt": "2026-07-13T07:05:59.563Z",
+    "updatedAt": "2026-07-13T07:15:45.254Z",
+    "lastLogin": "2026-07-13T07:15:45.253Z"
+  }
+]

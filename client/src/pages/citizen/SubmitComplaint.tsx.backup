@@ -1,0 +1,1085 @@
+import { FC, useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
+import {
+  MapPin,
+  Upload,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  X,
+  Eye,
+  EyeOff,
+  Navigation,
+  Loader,
+  Sparkles,
+} from 'lucide-react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+import Card from '../../components/Card';
+import Input from '../../components/Input';
+import Button from '../../components/Button';
+import Badge from '../../components/Badge';
+import { COMPLAINT_CATEGORIES, INDIAN_STATES, FILE_LIMITS } from '../../constants';
+import { useAppDispatch } from '../../hooks/redux';
+import { submitComplaint } from '../../store/slices/complaintSlice';
+import { ComplaintSubmitData } from '../../types/complaint';
+import { useGeolocation } from '../../hooks/useGeolocation';
+import { useDebounce } from '../../hooks/useDebounce';
+
+// Fix leaflet default marker icon
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// Category keyword mapping for AI suggestion
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  infrastructure: ['road', 'pothole', 'footpath', 'bridge', 'highway', 'construction', 'crater', 'pavement', 'street', 'pathway', 'broken road', 'damaged road', 'road repair', 'asphalt', 'cement', 'sidewalk', 'crossing', 'intersection', 'traffic', 'flyover', 'underpass'],
+  electricity: ['light', 'power', 'electricity', 'current', 'wire', 'transformer', 'outage', 'shock', 'voltage', 'electric', 'cable', 'blackout', 'supply cut', 'no electricity', 'meter', 'fuse'],
+  water_supply: ['water', 'pipe', 'leakage', 'tap', 'supply', 'borewell', 'drinking', 'tank', 'pipeline', 'valve', 'no water', 'water shortage', 'contaminated water', 'dirty water', 'pump'],
+  sanitation: ['toilet', 'bathroom', 'open defecation', 'sewage', 'hygiene', 'sanitary', 'washroom', 'urinal', 'latrine', 'public toilet', 'cleanliness'],
+  drainage: ['drain', 'waterlogging', 'flood', 'overflow', 'blocked drain', 'clogged', 'stagnant', 'rainwater', 'manhole', 'gutter', 'sewerage'],
+  street_lights: ['street light', 'lamp post', 'dark road', 'lighting', 'bulb', 'pole', 'illumination', 'not working', 'broken light', 'darkness'],
+  garbage: ['garbage', 'waste', 'trash', 'dustbin', 'littering', 'dump', 'rubbish', 'litter', 'disposal', 'not collected', 'dirty', 'smell', 'bins'],
+  public_transport: ['bus', 'auto', 'tempo', 'route', 'stop', 'transport', 'vehicle', 'rickshaw', 'conductor', 'driver', 'timing', 'overcrowded'],
+  fire: ['fire', 'burning', 'flames', 'smoke', 'fire emergency', 'fire accident', 'blast', 'explosion', 'fire safety', 'fire hazard', 'fire brigade', 'caught fire', 'on fire', 'fire extinguisher', 'fire alarm'],
+  police: ['police', 'crime', 'theft', 'robbery', 'murder', 'assault', 'fight', 'violence', 'law and order', 'fir', 'complaint', 'safety', 'security', 'criminal', 'incident', 'emergency', 'cops', 'station'],
+  health: ['hospital', 'health', 'doctor', 'medical', 'clinic', 'emergency', 'ambulance', 'disease', 'epidemic', 'vaccination', 'medicine', 'treatment', 'patient', 'covid', 'fever', 'illness', 'injury'],
+  building: ['building', 'construction permit', 'approval', 'noc', 'plan approval', 'building plan', 'construction approval', 'license', 'permission', 'certificate', 'building code', 'structural'],
+  revenue: ['tax', 'property tax', 'revenue', 'payment', 'bill', 'assessment', 'mutation', 'tax collection', 'tax notice', 'overdue', 'penalty', 'receipt'],
+  corruption: ['bribe', 'corruption', 'official', 'money demanded', 'illegal payment', 'extortion', 'fraud', 'under table', 'kickback'],
+  noise_pollution: ['noise', 'sound', 'loud', 'speaker', 'dj', 'construction noise', 'disturbance', 'volume', 'music', 'party'],
+  air_pollution: ['smoke', 'pollution', 'dust', 'factory', 'fumes', 'smell', 'emission', 'odor', 'air quality', 'burning', 'toxic'],
+  illegal_construction: ['illegal building', 'unauthorized construction', 'encroachment building', 'unlawful', 'illegal structure', 'without permission', 'unapproved'],
+  encroachment: ['encroachment', 'occupied', 'blocked path', 'illegal shop', 'obstruction', 'trespassing', 'footpath blocked', 'hawker'],
+  parks_gardens: ['park', 'garden', 'tree', 'plant', 'playground', 'maintenance', 'lawn', 'greenery', 'bench', 'swing', 'grass'],
+  other: ['other', 'miscellaneous', 'general', 'various']
+};
+
+// AI-powered category detection function
+const detectCategory = (text: string): string | null => {
+  if (!text || text.trim().length < 3) return null;
+
+  const normalizedText = text.toLowerCase();
+  const scores: Record<string, number> = {};
+
+  // Calculate score for each category based on keyword matches
+  Object.entries(CATEGORY_KEYWORDS).forEach(([category, keywords]) => {
+    let score = 0;
+    keywords.forEach(keyword => {
+      if (normalizedText.includes(keyword.toLowerCase())) {
+        // Give higher score for exact word matches
+        const regex = new RegExp(`\\b${keyword.toLowerCase()}\\b`, 'g');
+        const matches = normalizedText.match(regex);
+        score += matches ? matches.length * 2 : 1;
+      }
+    });
+    if (score > 0) {
+      scores[category] = score;
+    }
+  });
+
+  // Find category with highest score
+  const sortedCategories = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  
+  // Return the best match if confidence is reasonable (score >= 2)
+  if (sortedCategories.length > 0 && sortedCategories[0][1] >= 2) {
+    return sortedCategories[0][0];
+  }
+
+  return null;
+};
+
+interface FormData {
+  title: string;
+  description: string;
+  category: string;
+  address: string;
+  district: string;
+  state: string;
+  pincode: string;
+  landmark: string;
+  expectedOutcome: string;
+  isAnonymous: boolean;
+  anonymousEmail: string;
+  anonymousPhone: string;
+}
+
+const SubmitComplaint: FC = () => {
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { latitude, longitude, loading: geoLoading, error: geoError, accuracy, getCurrentPosition } = useGeolocation();
+
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [coordinates, setCoordinates] = useState<[number, number]>([20.5937, 78.9629]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [showMap, setShowMap] = useState(false);
+  const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+  const [userOverrode, setUserOverrode] = useState(false);
+  const [fetchingAddress, setFetchingAddress] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    trigger,
+    formState: { errors },
+  } = useForm<FormData>({
+    defaultValues: {
+      isAnonymous: false,
+      state: 'Maharashtra',
+    },
+  });
+
+  const isAnonymous = watch('isAnonymous');
+  const selectedCategory = watch('category');
+  const title = watch('title');
+  const description = watch('description');
+
+  // Debounced text for AI detection (500ms delay)
+  const debouncedTitle = useDebounce(title, 500);
+  const debouncedDescription = useDebounce(description, 500);
+
+  // AI Category Detection Effect
+  useEffect(() => {
+    const combinedText = `${debouncedTitle || ''} ${debouncedDescription || ''}`;
+    const detected = detectCategory(combinedText);
+    
+    if (detected) {
+      setSuggestedCategory(detected);
+      // Auto-select the suggested category UNLESS user manually overrode it
+      if (!userOverrode) {
+        setValue('category', detected);
+      }
+    } else {
+      setSuggestedCategory(null);
+      // Clear category if no suggestion and user hasn't manually selected
+      if (!userOverrode) {
+        setValue('category', '');
+      }
+    }
+  }, [debouncedTitle, debouncedDescription, userOverrode, setValue]);
+
+  // Reset override flag when text changes significantly
+  useEffect(() => {
+    if (debouncedTitle || debouncedDescription) {
+      // Allow new suggestions after text changes
+      setUserOverrode(false);
+    }
+  }, [debouncedTitle, debouncedDescription]);
+
+  // Handle manual category selection
+  const handleCategoryChange = (categoryValue: string) => {
+    setValue('category', categoryValue);
+    setUserOverrode(true); // Mark that user manually selected
+  };
+
+  // Update coordinates when geolocation is available
+  useEffect(() => {
+    if (latitude && longitude) {
+      console.log('🎯 Setting coordinates from geolocation:', { latitude, longitude, accuracy });
+      
+      const newCoords: [number, number] = [latitude, longitude];
+      setCoordinates(newCoords);
+      setShowMap(true); // Auto-show map when location is detected
+      
+      // Show accuracy warning if needed
+      if (accuracy && accuracy > 100) {
+        toast.error(`Location accuracy is low (${Math.round(accuracy)}m). Address may be inaccurate.`);
+      } else if (accuracy && accuracy > 50) {
+        toast.warning(`Location accuracy is moderate (${Math.round(accuracy)}m).`);
+      }
+      
+      // Fetch address from coordinates
+      fetchAddressFromCoordinates(latitude, longitude);
+    }
+  }, [latitude, longitude, accuracy]);
+
+  // Fetch address using backend proxy (reliable with multiple providers!)
+  const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
+    setFetchingAddress(true);
+    try {
+      console.log('🔍 ===== REVERSE GEOCODING REQUEST =====');
+      console.log('📍 Input Coordinates:');
+      console.log('   Latitude:', lat);
+      console.log('   Longitude:', lng);
+      console.log('   Accuracy:', accuracy, 'meters');
+      console.log('   Leaflet Format [lat, lng]:', [lat, lng]);
+      console.log('   Google Maps Format:', `${lat}, ${lng}`);
+      console.log('🔗 API Endpoint:', `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/geocoding/reverse?lat=${lat}&lng=${lng}`);
+      console.log('=====================================');
+      
+      // Show loading toast
+      const loadingToast = toast.loading(`Fetching address... (Accuracy: ${accuracy ? Math.round(accuracy) + 'm' : 'Unknown'})`);
+      
+      // Call our backend endpoint (which tries multiple providers)
+      const apiUrl = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/geocoding/reverse?lat=${lat}&lng=${lng}`;
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('📥 API Response Status:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      console.log('✅ ===== REVERSE GEOCODING RESPONSE =====');
+      console.log('Success:', result.success);
+      console.log('Full Response:', JSON.stringify(result, null, 2));
+      if (result.data) {
+        console.log('📬 Parsed Address:');
+        console.log('   Street Number:', result.data.streetNumber || '(empty)');
+        console.log('   Road:', result.data.road || '(empty)');
+        console.log('   Suburb:', result.data.suburb || '(empty)');
+        console.log('   Locality:', result.data.locality || '(empty)');
+        console.log('   District:', result.data.district || '(empty)');
+        console.log('   State:', result.data.state || '(empty)');
+        console.log('   Pincode:', result.data.pincode || '(empty)');
+        console.log('   Formatted:', result.data.formattedAddress || '(empty)');
+      }
+      console.log('=====================================');
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to fetch address');
+      }
+      
+      const data = result.data;
+      
+      // Auto-fill address fields
+      const streetAddress = [data.streetNumber, data.road, data.suburb].filter(Boolean).join(', ');
+      if (streetAddress) {
+        setValue('address', streetAddress);
+        console.log('✏️ Filled Address field:', streetAddress);
+      } else if (data.locality) {
+        setValue('address', data.locality);
+        console.log('✏️ Filled Address field (locality):', data.locality);
+      }
+      
+      if (data.district) {
+        setValue('district', data.district);
+        console.log('✏️ Filled District field:', data.district);
+      } else if (data.locality) {
+        setValue('district', data.locality);
+        console.log('✏️ Filled District field (locality):', data.locality);
+      }
+      
+      if (data.state) {
+        setValue('state', data.state);
+        console.log('✏️ Filled State field:', data.state);
+      }
+      
+      if (data.pincode) {
+        setValue('pincode', data.pincode);
+        console.log('✏️ Filled Pincode field:', data.pincode);
+      }
+      
+      // Dismiss loading and show success
+      toast.dismiss(loadingToast);
+      
+      const successMessage = accuracy && accuracy > 100 
+        ? `Address filled (low accuracy: ${Math.round(accuracy)}m - verify manually)`
+        : 'Location detected and address filled!';
+      
+      toast.success(successMessage);
+      
+    } catch (error: any) {
+      console.error('❌ ===== GEOCODING ERROR =====');
+      console.error('Error:', error);
+      console.error('Error Message:', error.message);
+      console.error('=====================================');
+      toast.error('Could not fetch address. Please enter manually.');
+    } finally {
+      setFetchingAddress(false);
+    }
+  };
+
+  // Cleanup preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
+
+  // Map click handler component
+  const LocationMarker = () => {
+    useMapEvents({
+      click(e) {
+        setCoordinates([e.latlng.lat, e.latlng.lng]);
+        // Fetch address when user clicks map
+        fetchAddressFromCoordinates(e.latlng.lat, e.latlng.lng);
+      },
+    });
+
+    return <Marker position={coordinates} />;
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    // Validate file count
+    if (selectedFiles.length + files.length > FILE_LIMITS.MAX_FILES) {
+      toast.error(`Maximum ${FILE_LIMITS.MAX_FILES} files allowed`);
+      return;
+    }
+
+    // Validate file sizes and types
+    for (const file of files) {
+      if (file.size > FILE_LIMITS.MAX_SIZE) {
+        toast.error(`${file.name} is too large. Max size is 10MB`);
+        return;
+      }
+
+      const allowedTypes = [
+        ...FILE_LIMITS.ALLOWED_IMAGE_TYPES,
+        ...FILE_LIMITS.ALLOWED_VIDEO_TYPES,
+        ...FILE_LIMITS.ALLOWED_DOCUMENT_TYPES,
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(`${file.name} is not a supported file type`);
+        return;
+      }
+    }
+
+    // Add files and create previews
+    setSelectedFiles(prev => [...prev, ...files]);
+
+    files.forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        setPreviewUrls(prev => [...prev, url]);
+      }
+    });
+
+    toast.success(`${files.length} file(s) added`);
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    if (previewUrls[index]) {
+      URL.revokeObjectURL(previewUrls[index]);
+      setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const onSubmit = async (data: FormData) => {
+    setLoading(true);
+
+    try {
+      // Prepare FormData for file upload
+      const formData = new FormData();
+
+      // Add text fields
+      formData.append('title', data.title);
+      formData.append('description', data.description);
+      formData.append('category', data.category);
+      formData.append('expectedOutcome', data.expectedOutcome || '');
+      formData.append('isAnonymous', String(data.isAnonymous));
+
+      // Add location
+      formData.append('location[coordinates][0]', String(coordinates[1])); // longitude
+      formData.append('location[coordinates][1]', String(coordinates[0])); // latitude
+      formData.append('location[address]', data.address);
+      formData.append('location[district]', data.district);
+      formData.append('location[state]', data.state);
+      formData.append('location[pincode]', data.pincode || '');
+      formData.append('location[landmark]', data.landmark || '');
+
+      // Add anonymous contact if applicable
+      if (data.isAnonymous) {
+        if (data.anonymousEmail) {
+          formData.append('anonymousContact[email]', data.anonymousEmail);
+        }
+        if (data.anonymousPhone) {
+          formData.append('anonymousContact[phone]', data.anonymousPhone);
+        }
+      }
+
+      // Add files
+      selectedFiles.forEach(file => {
+        formData.append('files', file);
+      });
+
+      // Submit complaint
+      const result = await dispatch(submitComplaint(formData)).unwrap();
+
+      toast.success('Complaint submitted successfully!');
+      
+      // Navigate to complaint detail
+      if (result._id) {
+        navigate(`/citizen/complaints/${result._id}`);
+      } else {
+        navigate('/citizen/my-complaints');
+      }
+
+    } catch (error: any) {
+      console.error('Submit error:', error);
+      toast.error(error || 'Failed to submit complaint');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nextStep = async () => {
+    // Validate current step before proceeding
+    let fieldsToValidate: (keyof FormData)[] = [];
+    
+    if (step === 1) {
+      // Step 1: Basic Details validation
+      fieldsToValidate = ['title', 'description', 'category'];
+    } else if (step === 2) {
+      // Step 2: Location validation
+      fieldsToValidate = ['address', 'district', 'state'];
+    }
+    
+    // Trigger validation for required fields
+    const isValid = await trigger(fieldsToValidate);
+    
+    if (isValid) {
+      setStep(prev => Math.min(prev + 1, 3));
+    } else {
+      toast.error('Please fill all required fields');
+    }
+  };
+
+  const prevStep = () => {
+    setStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const steps = [
+    { number: 1, title: 'Basic Details', icon: FileText },
+    { number: 2, title: 'Location', icon: MapPin },
+    { number: 3, title: 'Review & Submit', icon: CheckCircle },
+  ];
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          Submit New Complaint
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mb-8">
+          Report civic issues and track their resolution in real-time
+        </p>
+
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {steps.map((s, index) => {
+              const Icon = s.icon;
+              const isActive = step === s.number;
+              const isComplete = step > s.number;
+
+              return (
+                <div key={s.number} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
+                        isComplete
+                          ? 'bg-green-500 border-green-500 text-white'
+                          : isActive
+                          ? 'bg-primary-600 border-primary-600 text-white'
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400'
+                      }`}
+                    >
+                      {isComplete ? <CheckCircle className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
+                    </div>
+                    <span
+                      className={`mt-2 text-sm font-medium ${
+                        isActive || isComplete
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-gray-500 dark:text-gray-400'
+                      }`}
+                    >
+                      {s.title}
+                    </span>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div
+                      className={`h-0.5 flex-1 mx-4 ${
+                        isComplete ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                      }`}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <AnimatePresence mode="wait">
+            {/* Step 1: Basic Details */}
+            {step === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+                    Complaint Details
+                  </h2>
+
+                  <div className="space-y-6">
+                    {/* Anonymous Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        {isAnonymous ? (
+                          <EyeOff className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        ) : (
+                          <Eye className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        )}
+                        <div>
+                          <h3 className="font-medium text-gray-900 dark:text-white">
+                            Submit Anonymously
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Your identity will be kept confidential
+                          </p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          {...register('isAnonymous')}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                      </label>
+                    </div>
+
+                    {/* Anonymous Contact */}
+                    {isAnonymous && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-4"
+                      >
+                        <Input
+                          label="Anonymous Email (Optional)"
+                          type="email"
+                          placeholder="your@email.com"
+                          {...register('anonymousEmail')}
+                          helperText="We'll use this to send updates"
+                        />
+                        <Input
+                          label="Anonymous Phone (Optional)"
+                          type="tel"
+                          placeholder="+91 98765 43210"
+                          {...register('anonymousPhone')}
+                        />
+                      </motion.div>
+                    )}
+
+                    {/* Title */}
+                    <Input
+                      label="Complaint Title"
+                      placeholder="Brief description of the issue"
+                      {...register('title', {
+                        required: 'Title is required',
+                        minLength: { value: 10, message: 'Title must be at least 10 characters' },
+                        maxLength: { value: 200, message: 'Title must be less than 200 characters' },
+                      })}
+                      error={errors.title?.message}
+                    />
+
+                    {/* AI-Detected Category (Compact display) */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        AI Department Detection
+                      </label>
+                      
+                      {/* AI Detection Status - Compact */}
+                      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg p-3">
+                        {suggestedCategory ? (
+                          <motion.div
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center justify-between gap-3"
+                          >
+                            {/* Department Display - Compact */}
+                            <div className="flex items-center gap-3 flex-1">
+                              <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                              <span className="text-2xl flex-shrink-0">
+                                {COMPLAINT_CATEGORIES.find(c => c.value === suggestedCategory)?.icon}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase">
+                                  Detected Department
+                                </p>
+                                <p className="text-lg font-bold text-purple-900 dark:text-purple-100 truncate">
+                                  {COMPLAINT_CATEGORIES.find(c => c.value === suggestedCategory)?.label}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Badges */}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                                <CheckCircle className="w-4 h-4" />
+                                <span className="text-xs font-semibold">High</span>
+                              </div>
+                              <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded-full whitespace-nowrap">
+                                Auto-assigned
+                              </span>
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <Loader className="w-4 h-4 animate-spin text-purple-500 flex-shrink-0" />
+                            <span>Type to detect department...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Hidden input for form submission */}
+                      <input
+                        type="hidden"
+                        {...register('category', { required: 'Please provide enough details for AI to detect the department' })}
+                      />
+                      
+                      {!suggestedCategory && errors.category && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />
+                          Please provide more details so AI can detect the department
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Detailed Description <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        {...register('description', {
+                          required: 'Description is required',
+                          minLength: { value: 20, message: 'Description must be at least 20 characters' },
+                        })}
+                        rows={5}
+                        className="input"
+                        placeholder="Provide detailed information about the issue..."
+                      />
+                      {errors.description && (
+                        <p className="mt-2 text-sm text-red-600">{errors.description.message}</p>
+                      )}
+                    </div>
+
+                    {/* Expected Outcome */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Expected Outcome (Optional)
+                      </label>
+                      <textarea
+                        {...register('expectedOutcome')}
+                        rows={3}
+                        className="input"
+                        placeholder="What resolution are you expecting?"
+                      />
+                    </div>
+
+                    {/* File Upload */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Upload Evidence (Optional)
+                      </label>
+                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
+                          Images, Videos, or PDF (Max 10MB each, up to 5 files)
+                        </p>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,video/*,application/pdf"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                          id="file-upload"
+                        />
+                        <label htmlFor="file-upload">
+                          <Button type="button" variant="outline" size="sm" as="span">
+                            Choose Files
+                          </Button>
+                        </label>
+                      </div>
+
+                      {/* File Previews */}
+                      {selectedFiles.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          {selectedFiles.map((file, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                            >
+                              {file.type.startsWith('image/') && previewUrls[index] && (
+                                <img
+                                  src={previewUrls[index]}
+                                  alt={file.name}
+                                  className="w-12 h-12 object-cover rounded"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                  {file.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeFile(index)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <Button type="button" onClick={nextStep}>
+                      Next: Location
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Step 2: Location */}
+            {step === 2 && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+                    Complaint Location
+                  </h2>
+
+                  <div className="space-y-6">
+                    {/* Current Location Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      icon={<Navigation className="w-4 h-4" />}
+                      onClick={getCurrentPosition}
+                      loading={geoLoading || fetchingAddress}
+                      fullWidth
+                    >
+                      {fetchingAddress ? 'Fetching Address...' : 'Use Current Location'}
+                    </Button>
+
+                    {geoError && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg">
+                        <AlertCircle className="w-5 h-5" />
+                        <span className="text-sm">{geoError}</span>
+                      </div>
+                    )}
+
+                    {/* Map */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Select Location on Map
+                        </label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowMap(!showMap)}
+                        >
+                          {showMap ? 'Hide Map' : 'Show Map'}
+                        </Button>
+                      </div>
+
+                      {showMap && (
+                        <div className="h-80 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+                          <MapContainer
+                            center={coordinates}
+                            zoom={15}
+                            style={{ height: '100%', width: '100%' }}
+                          >
+                            <TileLayer
+                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                            <LocationMarker />
+                          </MapContainer>
+                        </div>
+                      )}
+
+                      <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                        Coordinates: {coordinates[0].toFixed(6)}, {coordinates[1].toFixed(6)}
+                      </div>
+                    </div>
+
+                    {/* Address */}
+                    <Input
+                      label="Street Address"
+                      placeholder="House/Building No., Street Name"
+                      {...register('address', { required: 'Address is required' })}
+                      error={errors.address?.message}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        label="District"
+                        placeholder="District"
+                        {...register('district', { required: 'District is required' })}
+                        error={errors.district?.message}
+                      />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          State <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          {...register('state', { required: 'State is required' })}
+                          className="input"
+                        >
+                          {INDIAN_STATES.map(state => (
+                            <option key={state} value={state}>
+                              {state}
+                            </option>
+                          ))}
+                        </select>
+                        {errors.state && (
+                          <p className="mt-1 text-sm text-red-600">{errors.state.message}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        label="Pincode"
+                        placeholder="400001"
+                        {...register('pincode', {
+                          pattern: {
+                            value: /^[1-9][0-9]{5}$/,
+                            message: 'Invalid pincode',
+                          },
+                        })}
+                        error={errors.pincode?.message}
+                      />
+                      <Input
+                        label="Landmark (Optional)"
+                        placeholder="Near landmark"
+                        {...register('landmark')}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <Button type="button" variant="outline" onClick={prevStep}>
+                      Back
+                    </Button>
+                    <Button type="button" onClick={nextStep}>
+                      Next: Review
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Step 3: Review */}
+            {step === 3 && (
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+                    Review Your Complaint
+                  </h2>
+
+                  <div className="space-y-6">
+                    {/* Basic Details */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                        Basic Details
+                      </h3>
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Title:</span>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {watch('title')}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Category:</span>
+                          <Badge className="ml-2">
+                            {COMPLAINT_CATEGORIES.find(c => c.value === watch('category'))?.label}
+                          </Badge>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Description:
+                          </span>
+                          <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
+                            {watch('description')}
+                          </p>
+                        </div>
+                        {watch('isAnonymous') && (
+                          <Badge variant="warning">Anonymous Complaint</Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Location */}
+                    <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                        Location
+                      </h3>
+                      <div className="space-y-2">
+                        <p className="text-gray-900 dark:text-white">{watch('address')}</p>
+                        <p className="text-gray-900 dark:text-white">
+                          {watch('district')}, {watch('state')} {watch('pincode')}
+                        </p>
+                        {watch('landmark') && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Near: {watch('landmark')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Files */}
+                    {selectedFiles.length > 0 && (
+                      <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                          Attached Files
+                        </h3>
+                        <p className="text-gray-900 dark:text-white">
+                          {selectedFiles.length} file(s) attached
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <Button type="button" variant="outline" onClick={prevStep}>
+                      Back
+                    </Button>
+                    <Button type="submit" loading={loading} icon={<CheckCircle className="w-5 h-5" />}>
+                      Submit Complaint
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </form>
+      </motion.div>
+    </div>
+  );
+};
+
+export default SubmitComplaint;
+          </p>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Category:</span>
+                          <Badge className="ml-2">
+                            {COMPLAINT_CATEGORIES.find(c => c.value === watch('category'))?.label}
+                          </Badge>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Description:
+                          </span>
+                          <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
+                            {watch('description')}
+                          </p>
+                        </div>
+                        {watch('isAnonymous') && (
+                          <Badge variant="warning">Anonymous Complaint</Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Location */}
+                    <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                        Location
+                      </h3>
+                      <div className="space-y-2">
+                        <p className="text-gray-900 dark:text-white">{watch('address')}</p>
+                        <p className="text-gray-900 dark:text-white">
+                          {watch('district')}, {watch('state')} {watch('pincode')}
+                        </p>
+                        {watch('landmark') && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Near: {watch('landmark')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Files */}
+                    {selectedFiles.length > 0 && (
+                      <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                          Attached Files
+                        </h3>
+                        <p className="text-gray-900 dark:text-white">
+                          {selectedFiles.length} file(s) attached
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <Button type="button" variant="outline" onClick={prevStep}>
+                      Back
+                    </Button>
+                    <Button type="submit" loading={loading} icon={<CheckCircle className="w-5 h-5" />}>
+                      Submit Complaint
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </form>
+      </motion.div>
+    </div>
+  );
+};
+
+export default SubmitComplaint;

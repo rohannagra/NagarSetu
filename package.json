@@ -1,0 +1,33 @@
+{
+  "name": "nagar-setu",
+  "version": "1.0.0",
+  "description": "AI-Powered Smart Complaint Redressal System",
+  "private": true,
+  "scripts": {
+    "install-all": "npm run install-server && npm run install-client && npm run install-ai",
+    "install-server": "cd server && npm install",
+    "install-client": "cd client && npm install",
+    "install-ai": "cd ai-service && pip install -r requirements.txt",
+    "dev": "concurrently \"npm run dev-server\" \"npm run dev-client\" \"npm run dev-ai\"",
+    "dev-server": "cd server && npm run dev",
+    "dev-client": "cd client && npm run dev",
+    "dev-ai": "cd ai-service && uvicorn app.main:app --reload --port 8000",
+    "build": "npm run build-client",
+    "build-client": "cd client && npm run build",
+    "docker-up": "docker-compose up --build",
+    "docker-down": "docker-compose down",
+    "docker-logs": "docker-compose logs -f"
+  },
+  "keywords": [
+    "complaint",
+    "redressal",
+    "government",
+    "ai",
+    "civic-tech"
+  ],
+  "author": "Nagar Setu Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

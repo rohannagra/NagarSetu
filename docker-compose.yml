@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: nagar-setu-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: nagar-setu
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - nagar-setu-network
+
+  # Backend Server
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: nagar-setu-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://admin:admin123@mongodb:27017/nagar-setu?authSource=admin
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_REFRESH_SECRET: your-refresh-secret-key-change-in-production
+      JWT_EXPIRE: 7d
+      JWT_REFRESH_EXPIRE: 30d
+      AI_SERVICE_URL: http://ai-service:8000
+      CLIENT_URL: http://localhost:5173
+    depends_on:
+      - mongodb
+      - ai-service
+    volumes:
+      - ./server/uploads:/app/uploads
+    networks:
+      - nagar-setu-network
+
+  # AI Service
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: nagar-setu-ai
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      MODEL_CACHE_DIR: /app/models
+      LOG_LEVEL: INFO
+    volumes:
+      - ai_models:/app/models
+    networks:
+      - nagar-setu-network
+
+  # Frontend (Production Build)
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: nagar-setu-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    environment:
+      VITE_API_BASE_URL: http://localhost:5000/api
+      VITE_SOCKET_URL: http://localhost:5000
+      VITE_AI_SERVICE_URL: http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - nagar-setu-network
+
+networks:
+  nagar-setu-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  ai_models:
+    driver: local

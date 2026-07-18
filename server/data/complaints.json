@@ -1,0 +1,106 @@
+[
+  {
+    "complaintId": "NGS2026000001",
+    "title": "road is broken ",
+    "description": "road is broken in my area fix is asap.",
+    "category": "infrastructure",
+    "location": {
+      "coordinates": [
+        "77.3411284821222",
+        "23.229138869032873"
+      ],
+      "address": "Bhopal",
+      "district": "Bhopal",
+      "state": "Madhya Pradesh",
+      "pincode": "462001",
+      "landmark": ""
+    },
+    "expectedOutcome": "",
+    "isAnonymous": true,
+    "media": {},
+    "tags": [],
+    "anonymousToken": "ANO-MRERMGLL-7JDO7QUHO5W",
+    "_id": "17836776572290wwmb3fuz",
+    "createdAt": "2026-07-10T10:00:57.229Z",
+    "updatedAt": "2026-07-10T10:00:57.323Z",
+    "aiAnalysis": {
+      "predictedCategory": "roads",
+      "predictedDepartment": "Public Works Department",
+      "sentiment": "negative",
+      "urgencyScore": 77.3,
+      "summary": "road is broken in my area fix is asap. road is broken",
+      "keywords": [
+        "road",
+        "broken",
+        "area",
+        "asap."
+      ],
+      "confidence": 0.5,
+      "abusiveLanguageDetected": false,
+      "duplicateScore": 0,
+      "similarComplaints": [],
+      "processedAt": "2026-07-10T10:00:57.319Z"
+    },
+    "priority": "high",
+    "statusHistory": [
+      {
+        "status": "submitted",
+        "remarks": "Complaint submitted successfully",
+        "timestamp": "2026-07-10T10:00:57.322Z"
+      }
+    ]
+  },
+  {
+    "complaintId": "NGS2026000002",
+    "title": "jcndccc road  dqq",
+    "description": "c wccqceqcfd e eew e wdewed  fwfw",
+    "category": "infrastructure",
+    "location": {
+      "coordinates": [
+        "78.9629",
+        "20.5937"
+      ],
+      "address": "Shantivardhan Marg, Ibrahimpura",
+      "district": "Bhopal",
+      "state": "Maharashtra",
+      "pincode": "",
+      "landmark": ""
+    },
+    "expectedOutcome": "",
+    "isAnonymous": true,
+    "media": {},
+    "tags": [],
+    "anonymousToken": "ANO-MRERPA0M-87PWPVLNJ6",
+    "_id": "1783677788667cmeyxt79a",
+    "createdAt": "2026-07-10T10:03:08.667Z",
+    "updatedAt": "2026-07-10T10:03:08.728Z",
+    "aiAnalysis": {
+      "predictedCategory": "roads",
+      "predictedDepartment": "Public Works Department",
+      "sentiment": "negative",
+      "urgencyScore": 44,
+      "summary": "c wccqceqcfd e eew e wdewed fwfw. jcndccc road dqq",
+      "keywords": [
+        "jcndccc",
+        "road",
+        "dqq.",
+        "wccqceqcfd",
+        "wdewed",
+        "fwfw"
+      ],
+      "confidence": 0.5,
+      "abusiveLanguageDetected": false,
+      "duplicateScore": 0,
+      "similarComplaints": [],
+      "processedAt": "2026-07-10T10:03:08.721Z"
+    },
+    "priority": "medium",
+    "statusHistory": [
+      {
+        "status": "submitted",
+        "remarks": "Complaint submitted successfully",
+        "timestamp": "2026-07-10T10:03:08.724Z"
+      }
+    ]
+  }
+]

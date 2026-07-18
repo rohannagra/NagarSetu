@@ -17,7 +17,6 @@ A modern, AI-powered civic complaint management system that connects citizens wi
 - [Getting Started](#-getting-started)
 - [Usage](#-usage)
 - [API Documentation](#-api-documentation)
-- [Screenshots](#-screenshots)
 - [Contributing](#-contributing)
 - [License](#-license)
 
@@ -321,25 +320,6 @@ POST   /find-duplicates        - Find similar complaints
 ```
 
 Full API documentation: http://localhost:5000/api
-
----
-
-## 📸 Screenshots
-
-### Landing Page
-Modern, responsive landing page with features showcase
-
-### Citizen Dashboard
-Track complaints, submit new ones, view statistics
-
-### Officer Dashboard
-Manage assigned complaints, update status, add comments
-
-### Admin Dashboard
-System overview, analytics, user management
-
-### Submit Complaint
-Multi-step form with AI-powered suggestions and geolocation
 
 ---
 

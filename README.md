@@ -411,7 +411,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Authors
 
-- **Rohan Nagra** - *Initial work* - [rohannagra](https://github.com/rohannagra)
+- **Rohan Nagra** - *Project Lead & Full Stack Developer* - [rohannagra](https://github.com/rohannagra)
+- **Pragati** - *Collaborator & Developer* - [Pragati2006](https://github.com/Pragati2006)
 
 ---
 

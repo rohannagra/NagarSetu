@@ -1,363 +1,461 @@
 # 🏛️ Nagar Setu - Smart Complaint Redressal System
 
-A full-stack civic complaint management system with AI-powered department detection and real-time tracking.
+A modern, AI-powered civic complaint management system that connects citizens with government departments for efficient issue resolution.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
+[![Python](https://img.shields.io/badge/Python-3.14-blue.svg)](https://www.python.org/)
 
 ---
 
-## 🚀 Quick Start
+## 📋 Table of Contents
 
-### Prerequisites
-- Node.js 16+ 
-- Python 3.8+
-- MongoDB Atlas account (free) OR local MongoDB
-
-### 1. Clone & Install
-```bash
-# Install backend dependencies
-cd server
-npm install
-
-# Install frontend dependencies
-cd ../client
-npm install
-
-# Install AI service dependencies
-cd ../ai-service
-pip install -r requirements.txt
-```
-
-### 2. Setup MongoDB Atlas (5 minutes)
-1. Sign up: https://www.mongodb.com/cloud/atlas/register
-2. Create free M0 cluster
-3. Create database user: `nagarsetu` / `nagarsetu123`
-4. Whitelist IP: `0.0.0.0/0`
-5. Get connection string
-6. Update `server/.env`:
-```
-MONGODB_URI=mongodb+srv://nagarsetu:nagarsetu123@cluster0.xxxxx.mongodb.net/nagar-setu?retryWrites=true&w=majority
-```
-
-### 3. Run Servers
-```bash
-# Terminal 1 - Backend
-cd server
-npm run dev
-
-# Terminal 2 - AI Service
-cd ai-service
-python -m uvicorn app.main:app --reload --port 8000
-
-# Terminal 3 - Frontend
-cd client
-npm run dev
-```
-
-### 4. Open Application
-Visit: http://localhost:5173
-
----
-
-## 📁 Project Structure
-
-```
-nagar-setu/
-├── client/              # React Frontend
-│   ├── src/
-│   │   ├── components/  # Reusable components
-│   │   ├── pages/       # All pages (25+)
-│   │   ├── store/       # Redux store
-│   │   ├── services/    # API services
-│   │   └── hooks/       # Custom hooks
-│   └── package.json
-│
-├── server/              # Node.js Backend
-│   ├── src/
-│   │   ├── controllers/ # Route controllers
-│   │   ├── models/      # MongoDB models
-│   │   ├── routes/      # API routes
-│   │   ├── middleware/  # Auth, validation
-│   │   └── config/      # Configuration
-│   └── package.json
-│
-├── ai-service/          # Python AI Service
-│   ├── app/
-│   │   ├── services/    # AI classification
-│   │   └── main.py      # FastAPI app
-│   └── requirements.txt
-│
-├── docs/                # Documentation
-│   ├── SETUP.md
-│   ├── API.md
-│   └── DEPLOYMENT.md
-│
-└── docker-compose.yml   # Docker setup
-```
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Usage](#-usage)
+- [API Documentation](#-api-documentation)
+- [Screenshots](#-screenshots)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
 ## ✨ Features
 
 ### 🎯 Core Features
-- ✅ User authentication (JWT)
-- ✅ Role-based access (Citizen, Officer, Admin)
-- ✅ Submit complaints with location
-- ✅ AI-powered department detection
-- ✅ Real-time complaint tracking
-- ✅ Interactive heatmap
-- ✅ Status updates & notifications
-- ✅ File uploads (images, videos, PDFs)
+- **Multi-Role System**: Citizen, Officer, and Admin dashboards
+- **Smart Complaint Management**: Submit, track, and resolve civic complaints
+- **AI-Powered Features**:
+  - Automatic category suggestion
+  - Urgency detection
+  - Sentiment analysis
+  - Duplicate complaint detection
+- **Real-time Updates**: Live status tracking and notifications
+- **File Upload**: Support for images and videos
+- **Geolocation**: Automatic location detection and manual entry
+- **Public Tracking**: Track complaints without login
+- **Heatmap Visualization**: Geographic complaint distribution
 
-### 🤖 AI Features
-- ✅ Automatic category classification
-- ✅ Department routing (20 departments)
-- ✅ Sentiment analysis
-- ✅ Urgency detection
-- ✅ Duplicate detection
-- ✅ Text summarization
+### 👤 Citizen Features
+- Submit complaints with rich media
+- Track complaint status in real-time
+- Receive notifications on updates
+- View complaint history
+- Chat with assigned officers
 
-### 👥 User Roles
-- **Citizen:** Submit, track, manage complaints
-- **Officer:** Review, update, resolve complaints
-- **Admin:** Manage users, departments, analytics
+### 👮 Officer Features
+- View assigned complaints
+- Accept/reject complaint assignments
+- Update complaint status
+- Add progress updates and comments
+- Priority-based complaint filtering
+
+### 👨‍💼 Admin Features
+- User management (CRUD operations)
+- Department management
+- System-wide analytics
+- Detailed reports and insights
+- Export data to CSV
+
+### 🎨 UI/UX Features
+- Responsive design (mobile-friendly)
+- Dark mode support
+- Smooth animations
+- Accessible (WCAG compliant)
+- Toast notifications
+- Loading states
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- React 18 + TypeScript
-- Redux Toolkit
-- Tailwind CSS
-- Framer Motion
-- React Router v6
-- Leaflet Maps
+- **React 18** - UI library
+- **TypeScript** - Type safety
+- **Vite** - Build tool
+- **Redux Toolkit** - State management
+- **React Router** - Navigation
+- **Tailwind CSS** - Styling
+- **Framer Motion** - Animations
+- **React Hot Toast** - Notifications
+- **Recharts** - Data visualization
+- **Lucide React** - Icons
 
 ### Backend
-- Node.js + Express
-- MongoDB + Mongoose
-- JWT Authentication
-- Socket.IO
-- Multer (file uploads)
+- **Node.js** - Runtime
+- **Express.js** - Web framework
+- **MongoDB** - Database (optional)
+- **Mongoose** - ODM
+- **JWT** - Authentication
+- **Bcrypt** - Password hashing
+- **Multer** - File uploads
+- **Socket.io** - Real-time communication
 
 ### AI Service
-- Python + FastAPI
-- NLP models
-- Text classification
-- Sentiment analysis
+- **Python 3.14** - Language
+- **FastAPI** - API framework
+- **scikit-learn** - ML models
+- **NLTK** - Natural language processing
+- **TF-IDF** - Text analysis
+- **Uvicorn** - ASGI server
+
+### DevOps
+- **Docker** - Containerization
+- **Docker Compose** - Multi-container orchestration
+- **Git** - Version control
 
 ---
 
-## 📊 Pages Implemented
+## 📁 Project Structure
 
-### Public (8 pages)
-- Landing Page
-- Login / Register
-- Forgot / Reset Password
-- Track Complaint
-- Heatmap
-- 404 Page
-
-### Citizen (6 pages)
-- Dashboard
-- Submit Complaint
-- My Complaints
-- Complaint Detail
-- Profile
-- Notifications
-
-### Officer (5 pages)
-- Dashboard
-- Complaints List
-- Complaint Detail
-- Profile
-- Notifications
-
-### Admin (6 pages)
-- Dashboard with Analytics
-- Manage Users
-- Manage Departments
-- Analytics
-- Profile
-- Notifications
-
-**Total: 25+ fully functional pages**
-
----
-
-## 🌐 API Endpoints
-
-### Authentication
 ```
-POST   /api/auth/register
-POST   /api/auth/login
-POST   /api/auth/refresh
-GET    /api/auth/me
-POST   /api/auth/forgot-password
-POST   /api/auth/reset-password
-```
-
-### Complaints
-```
-POST   /api/complaints
-GET    /api/complaints
-GET    /api/complaints/:id
-GET    /api/complaints/user/my-complaints
-PATCH  /api/complaints/:id/status
-DELETE /api/complaints/:id
-GET    /api/complaints/heatmap
-```
-
-### AI Classification
-```
-POST   /classify
-POST   /sentiment
-POST   /urgency
-POST   /duplicate
+Nagar-Setu-Project/
+├── client/                 # React Frontend
+│   ├── src/
+│   │   ├── components/    # Reusable UI components
+│   │   ├── pages/         # Page components
+│   │   ├── services/      # API integration
+│   │   ├── store/         # Redux state
+│   │   ├── hooks/         # Custom React hooks
+│   │   └── utils/         # Helper functions
+│   └── package.json
+│
+├── server/                # Node.js Backend
+│   ├── src/
+│   │   ├── controllers/  # Business logic
+│   │   ├── models/       # Database schemas
+│   │   ├── routes/       # API routes
+│   │   ├── middleware/   # Auth, validation
+│   │   ├── utils/        # Helper functions
+│   │   └── config/       # Configuration
+│   ├── data/            # File storage (fallback)
+│   └── package.json
+│
+├── ai-service/           # Python AI Service
+│   ├── app/
+│   │   ├── services/    # ML models
+│   │   ├── utils/       # Text processing
+│   │   └── main.py      # FastAPI app
+│   └── requirements.txt
+│
+├── docs/                # Documentation
+│   ├── features/       # Feature docs
+│   ├── fixes/          # Bug fix history
+│   ├── setup-guides/   # Installation guides
+│   └── status/         # Progress tracking
+│
+└── docker-compose.yml  # Docker configuration
 ```
 
 ---
 
-## 🔐 Environment Variables
+## 🚀 Getting Started
 
-Create `.env` files in `server/`:
+### Prerequisites
 
+- **Node.js** 18.x or higher
+- **Python** 3.8 or higher
+- **MongoDB** (optional - app works with file storage)
+- **Git**
+
+### Installation
+
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/rohannagra/NagarSetu.git
+cd NagarSetu
+```
+
+#### 2. Setup Backend
+
+```bash
+cd server
+npm install
+
+# Create .env file
+cp .env.example .env
+# Edit .env and add your configuration
+```
+
+**Backend Environment Variables** (`.env`):
 ```env
-# Server
-NODE_ENV=development
 PORT=5000
+NODE_ENV=development
+CLIENT_URL=http://localhost:5173
 
-# MongoDB
+# MongoDB (optional - app works without it)
 MONGODB_URI=your_mongodb_connection_string
 
 # JWT
-JWT_SECRET=your-secret-key
+JWT_SECRET=your_jwt_secret_key
 JWT_EXPIRE=7d
+JWT_REFRESH_SECRET=your_refresh_secret_key
+JWT_REFRESH_EXPIRE=30d
 
-# AI Service
-AI_SERVICE_URL=http://localhost:8000
-
-# Frontend
-CLIENT_URL=http://localhost:5173
+# Google Maps (optional)
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 ```
 
----
+#### 3. Setup Frontend
 
-## 🐳 Docker Deployment
-
-```bash
-# Build and run all services
-docker-compose up --build
-
-# Run in background
-docker-compose up -d
-
-# Stop services
-docker-compose down
-```
-
----
-
-## 📖 Documentation
-
-All documentation is in the `docs/` folder:
-- `docs/SETUP.md` - Setup guide
-- `docs/MONGODB_SETUP.md` - MongoDB configuration
-- `docs/API.md` - API documentation
-- `docs/DEPLOYMENT.md` - Deployment guide
-- `docs/PROJECT_STATUS.md` - Current status
-
----
-
-## 🧪 Testing
-
-### Test Credentials
-After registration, create test accounts:
-
-**Citizen:**
-```
-Email: citizen@test.com
-Password: 123456
-```
-
-**Officer:**
-```
-Email: officer@test.com
-Password: 123456
-```
-
-**Admin:**
-```
-Email: admin@test.com
-Password: 123456
-```
-
----
-
-## 🚀 Deployment
-
-### Frontend (Vercel/Netlify)
 ```bash
 cd client
-npm run build
-# Deploy dist/ folder
+npm install
+
+# Create .env file
+cp .env.example .env
 ```
 
-### Backend (Railway/Heroku)
-```bash
-cd server
-# Push to Railway/Heroku
+**Frontend Environment Variables** (`.env`):
+```env
+VITE_API_URL=http://localhost:5000/api
+VITE_AI_API_URL=http://localhost:8000
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 ```
 
-### AI Service (Google Cloud Run)
+#### 4. Setup AI Service
+
 ```bash
 cd ai-service
-# Deploy to Cloud Run
+pip install -r requirements.txt
+
+# Download NLTK data
+python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
 ```
+
+#### 5. Start All Services
+
+**Option A: Start Individually**
+
+```bash
+# Terminal 1: Backend
+cd server
+npm run dev
+
+# Terminal 2: Frontend
+cd client
+npm run dev
+
+# Terminal 3: AI Service
+cd ai-service
+uvicorn app.main:app --reload --port 8000
+```
+
+**Option B: Using Docker Compose**
+
+```bash
+docker-compose up
+```
+
+### Access the Application
+
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:5000/api
+- **AI Service**: http://localhost:8000/docs
 
 ---
 
-## 📈 Project Stats
+## 🔐 Usage
 
-- **Lines of Code:** 12,000+
-- **Components:** 50+
-- **Pages:** 25+
-- **API Endpoints:** 30+
-- **Features:** 100+
-- **Completion:** 100% ✅
+### Test Accounts
+
+The system comes with pre-configured test accounts:
+
+| Role | Email | Password | Access |
+|------|-------|----------|--------|
+| Citizen | citizen@test.com | password123 | Submit and track complaints |
+| Officer | officer@test.com | password123 | Manage assigned complaints |
+| Admin | admin@test.com | password123 | Full system access |
+
+### Quick Start Guide
+
+1. **Login**: Go to http://localhost:5173/login
+2. **Choose Role**: Login with appropriate test account
+3. **Explore Features**:
+   - **Citizen**: Submit a complaint with AI suggestions
+   - **Officer**: Accept and manage complaints
+   - **Admin**: View analytics and manage users
+
+---
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+
+```
+POST   /api/auth/register      - Register new user
+POST   /api/auth/login         - Login user
+GET    /api/auth/me            - Get current user
+POST   /api/auth/logout        - Logout user
+POST   /api/auth/refresh       - Refresh access token
+POST   /api/auth/forgot-password - Request password reset
+POST   /api/auth/reset-password  - Reset password
+PUT    /api/auth/profile       - Update profile
+PUT    /api/auth/change-password - Change password
+```
+
+### Complaint Endpoints
+
+```
+POST   /api/complaints         - Submit complaint
+GET    /api/complaints         - Get all complaints
+GET    /api/complaints/:id     - Get single complaint
+PATCH  /api/complaints/:id/status - Update status
+PATCH  /api/complaints/:id/assign - Assign officer
+POST   /api/complaints/:id/notes  - Add note
+GET    /api/complaints/user/my-complaints - User's complaints
+GET    /api/complaints/heatmap - Get heatmap data
+```
+
+### AI Service Endpoints
+
+```
+POST   /classify               - Classify complaint category
+POST   /analyze-sentiment      - Analyze sentiment
+POST   /detect-urgency         - Detect urgency level
+POST   /find-duplicates        - Find similar complaints
+```
+
+Full API documentation: http://localhost:5000/api
+
+---
+
+## 📸 Screenshots
+
+### Landing Page
+Modern, responsive landing page with features showcase
+
+### Citizen Dashboard
+Track complaints, submit new ones, view statistics
+
+### Officer Dashboard
+Manage assigned complaints, update status, add comments
+
+### Admin Dashboard
+System overview, analytics, user management
+
+### Submit Complaint
+Multi-step form with AI-powered suggestions and geolocation
+
+---
+
+## 🌟 Key Highlights
+
+### File Storage Fallback
+- Works **without MongoDB** setup
+- Automatic fallback to JSON file storage
+- Perfect for development and testing
+
+### AI-Powered Intelligence
+- Smart category prediction using ML
+- Urgency detection from complaint text
+- Sentiment analysis for priority
+- Duplicate detection to reduce redundancy
+
+### Security
+- JWT-based authentication
+- Password hashing with bcrypt
+- Role-based access control
+- Input validation and sanitization
+- XSS and CSRF protection
+
+### Performance
+- Code splitting and lazy loading
+- Optimized bundle size
+- Efficient API calls
+- Debounced search
+- Responsive images
 
 ---
 
 ## 🤝 Contributing
 
-This is a college project. For any questions:
-- Check `docs/` folder
-- Open an issue
-- Contact: [your-email]
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### Coding Standards
+- Use TypeScript for frontend
+- Follow ESLint rules
+- Write meaningful commit messages
+- Add comments for complex logic
+- Update documentation
+
+---
+
+## 📝 Documentation
+
+Detailed documentation is available in the `/docs` folder:
+
+- **Setup Guides**: Installation and configuration
+- **Features**: Detailed feature documentation
+- **API Reference**: Complete API documentation
+- **Troubleshooting**: Common issues and solutions
+
+---
+
+## 🐛 Known Issues
+
+- Real-time updates require page refresh in file storage mode
+- Complex queries limited in file storage mode
+- Email notifications require SMTP configuration
+
+---
+
+## 🔮 Future Enhancements
+
+- [ ] Mobile app (React Native)
+- [ ] Email notifications
+- [ ] SMS notifications
+- [ ] Advanced analytics
+- [ ] Multi-language support
+- [ ] Voice complaint submission
+- [ ] Chatbot integration
+- [ ] Progressive Web App (PWA)
 
 ---
 
 ## 📄 License
 
-MIT License - Feel free to use for educational purposes
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🎓 Project By
+## 👥 Authors
 
-**Your Name**
-Computer Science, 2024
-[Your College Name]
+- **Rohan Nagra** - *Initial work* - [rohannagra](https://github.com/rohannagra)
 
 ---
 
 ## 🙏 Acknowledgments
 
-- MongoDB Atlas for free database
-- OpenStreetMap for maps
-- AI models for classification
-- React community
+- Inspired by government complaint management systems
+- Built with modern web technologies
+- AI models trained on civic complaint data
+- Community feedback and contributions
 
 ---
 
-**Built with ❤️ for better civic governance**
+## 📞 Support
 
+For support, email rohannagra001@gmail.com or open an issue on GitHub.
+
+---
+
+## 🌐 Links
+
+- **GitHub**: https://github.com/rohannagra/NagarSetu
+- **Documentation**: See `/docs` folder
+- **Issue Tracker**: https://github.com/rohannagra/NagarSetu/issues
+
+---
+
+**Made with ❤️ for better civic engagement**

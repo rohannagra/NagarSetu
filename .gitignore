@@ -51,3 +51,11 @@ coverage/
 # Misc
 *.orig
 .cache/
+
+# Data files (contains sensitive user data)
+server/data/*.json
+!server/data/README.md
+
+# Temporary documentation files
+*_BACKUP.*
+*.backup
